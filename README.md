@@ -102,7 +102,7 @@ The indexer connects to the Sui/IKA network and listens for on-chain events (dWa
 
 ## Tech stack
 
-| | |
+|tool | name |
 |---|---|
 | Framework | Next.js  |
 | UI components | Radix UI Themes |
