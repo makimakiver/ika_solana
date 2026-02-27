@@ -84,7 +84,7 @@ Create a `.env` file:
 
 ```env
 # Sui RPC — recommended to use independent rpc service like shinami since it is likely to face "too many request" error
-NEXT_PUBLIC_SUI_RPC_URL=https://fullnode.testnet.sui.io
+NEXT_PUBLIC_SUI_RPC_URL=https://fullnode.testnet.sui.io:443
 ```
 
 Start the dev server:
