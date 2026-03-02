@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ika.xyz/sdk": "^0.2.7",
+    "@ika.xyz/sdk": "^0.3.0",
     "@mysten/dapp-kit-react": "^1.1.0",
     "@mysten/sui": "^2.5.0",
     "@radix-ui/themes": "^3.3.0",

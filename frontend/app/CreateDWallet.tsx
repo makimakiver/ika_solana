@@ -12,14 +12,19 @@ import {
 } from "@radix-ui/themes";
 import { Wallet } from "lucide-react";
 import { toast } from "sonner";
-import { useCurrentAccount, useDAppKit } from "@mysten/dapp-kit-react";
-import { createdWallet, type CreateDwalletResult } from "./lib/dWallet";
+import {
+  useCurrentAccount,
+  useCurrentClient,
+  useDAppKit,
+} from "@mysten/dapp-kit-react";
+import { createdWallet, type CreateDwalletResult } from "./lib/dWallet_utils";
 
 export function CreateDWallet() {
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<CreateDwalletResult | null>(null);
   const dAppKit = useDAppKit();
   const account = useCurrentAccount();
+  const suiClient = useCurrentClient();
 
   async function handleCreate() {
     setPending(true);
@@ -28,6 +33,7 @@ export function CreateDWallet() {
     try {
       const res = await createdWallet({
         senderAddress: account!.address,
+        suiClient,
         signAndExecuteTransaction: (args) =>
           dAppKit.signAndExecuteTransaction({ transaction: args.transaction }),
         onStatus: (msg) => toast.loading(msg, { id: toastId }),
@@ -60,7 +66,7 @@ export function CreateDWallet() {
               label="Encryption Key ID"
               value={result.encryptionKeyId}
             />
-            <ResultRow label="Session ID" value={result.sessionId} />
+            <ResultRow label="Session ID" value={result.sessionId.toString()} />
             <ResultRow
               label="Transaction Digest"
               value={result.transactionDigest}
