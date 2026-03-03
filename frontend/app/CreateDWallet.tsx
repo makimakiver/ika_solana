@@ -9,6 +9,7 @@ import {
   Heading,
   Spinner,
   Text,
+  TextField,
 } from "@radix-ui/themes";
 import { Wallet } from "lucide-react";
 import { toast } from "sonner";
@@ -22,11 +23,13 @@ import { createdWallet, type CreateDwalletResult } from "./lib/dWallet_utils";
 export function CreateDWallet() {
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<CreateDwalletResult | null>(null);
+  const [password, setPassword] = useState("");
   const dAppKit = useDAppKit();
   const account = useCurrentAccount();
   const suiClient = useCurrentClient();
 
   async function handleCreate() {
+    if (!password) return;
     setPending(true);
     await new Promise<void>((resolve) => setTimeout(resolve, 0));
     const toastId = toast.loading("Creating dWallet...");
@@ -36,6 +39,7 @@ export function CreateDWallet() {
         suiClient,
         signAndExecuteTransaction: (args) =>
           dAppKit.signAndExecuteTransaction({ transaction: args.transaction }),
+        password,
         onStatus: (msg) => toast.loading(msg, { id: toastId }),
       });
       setResult(res);
@@ -76,10 +80,23 @@ export function CreateDWallet() {
             </Button>
           </>
         ) : (
+          <>
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="medium">Password</Text>
+              <TextField.Root
+                type="password"
+                placeholder="Enter a password to generate your seed key"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Text size="1" color="gray">
+                The same password always generates the same dWallet key.
+              </Text>
+            </Flex>
           <Button
             size="3"
             onClick={handleCreate}
-            disabled={pending || !account}
+            disabled={pending || !account || !password}
           >
             {pending ? (
               <span
@@ -95,6 +112,7 @@ export function CreateDWallet() {
               "Create dWallet"
             )}
           </Button>
+          </>
         )}
       </Flex>
     </Card>
