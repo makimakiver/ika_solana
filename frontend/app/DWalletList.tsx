@@ -15,10 +15,13 @@ import {
 import { RefreshCw, Wallet } from "lucide-react";
 import { useCurrentAccount, useCurrentClient } from "@mysten/dapp-kit-react";
 import ikaConfigJson from "../ika_config.json";
+import { IkaClient } from "@ika.xyz/sdk";
+import { getLocalNetworkConfig } from "./lib/dWallet_utils";
 
 interface DWalletEntry {
   capId: string;
   dwalletId: string;
+  isActive: boolean;
 }
 
 export function DWalletList() {
@@ -31,6 +34,12 @@ export function DWalletList() {
     if (!account) return;
     setLoading(true);
     try {
+      const ikaClient = new IkaClient({
+        suiClient,
+        config: getLocalNetworkConfig(),
+      });
+      await ikaClient.initialize();
+
       const ownedObjects = await suiClient.core.listOwnedObjects({
         owner: account.address,
         type: `${ikaConfigJson.packages.ika_dwallet_2pc_mpc_package_id}::coordinator_inner::DWalletCap`,
@@ -44,9 +53,17 @@ export function DWalletList() {
           include: { content: true, json: true },
         });
         const dwalletId = capObj.object?.json?.dwallet_id as string | undefined;
-        if (dwalletId) {
-          results.push({ capId: obj.objectId, dwalletId });
+        if (!dwalletId) continue;
+
+        let isActive = false;
+        try {
+          const dWallet = await ikaClient.getDWallet(dwalletId);
+          isActive = dWallet.state?.$kind === "Active";
+        } catch {
+          isActive = false;
         }
+
+        results.push({ capId: obj.objectId, dwalletId, isActive });
       }
       setEntries(results);
     } finally {
@@ -90,10 +107,21 @@ export function DWalletList() {
       ) : (
         <Flex direction="column" gap="3">
           {entries.map((entry, i) => (
-            <Card key={entry.capId} variant="surface">
-              <Flex align="center" gap="2" mb="2">
-                <Wallet size={14} />
-                <Text size="2" weight="bold">dWallet #{i + 1}</Text>
+            <Card
+              key={entry.capId}
+              variant="surface"
+              style={{
+                borderLeft: `4px solid ${entry.isActive ? "var(--green-9)" : "var(--amber-9)"}`,
+              }}
+            >
+              <Flex align="center" justify="between" mb="2">
+                <Flex align="center" gap="2">
+                  <Wallet size={14} />
+                  <Text size="2" weight="bold">dWallet #{i + 1}</Text>
+                </Flex>
+                <Badge color={entry.isActive ? "green" : "amber"} variant="soft">
+                  {entry.isActive ? "Active" : "Pending"}
+                </Badge>
               </Flex>
               <Flex direction="column" gap="2">
                 <Box>
