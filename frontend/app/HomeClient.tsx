@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Box, Card, Flex, Heading, SegmentedControl, Text } from "@radix-ui/themes";
 import { WalletIcon, ArrowDownToLineIcon, ArrowUpFromLineIcon } from "lucide-react";
 import { CreateDWallet } from "./CreateDWallet";
+import { DWalletList } from "./DWalletList";
 import { DepositSolana } from "./DepositSolana";
 import { Withdraw } from "./Withdraw";
 
@@ -58,7 +59,10 @@ export function HomeClient() {
               <Text size="2" color="gray">Connect your wallet to get started.</Text>
             </Card>
           ) : activePage === "create-dwallet" ? (
-            <CreateDWallet />
+            <Flex direction="column" gap="4">
+              <CreateDWallet />
+              <DWalletList />
+            </Flex>
           ) : activePage === "deposit-solana" ? (
             <DepositSolana />
           ) : (

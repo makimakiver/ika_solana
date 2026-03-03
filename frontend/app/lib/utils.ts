@@ -37,7 +37,7 @@ export async function retryWithBackoff<T>(
         error?.message?.includes("Resource limit exceeded") ||
         error?.cause?.message?.includes("Resource limit exceeded");
       if (isRateLimit) {
-        const delayMs = 1000;
+        const delayMs = 10000;
         onStatus?.(
           `Rate limited — retrying in 1a... (${attempt + 1}/${maxRetries})`,
         );
