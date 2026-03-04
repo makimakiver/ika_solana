@@ -294,6 +294,17 @@ export function destroyEmptyTestIkaToken(
 
 ---
 
+### `requestSuiFromFaucetV2()`
+
+request the sui token on localnet.
+```ts
+  status("Fetching user coins...");
+  await requestSuiFromFaucetV2({
+    host: getFaucetHost("localnet"),
+    recipient: senderAddress,
+  });
+```
+
 ## Known behaviour
 
 - **DKG latency** — dWallet creation involves heavy cryptographic computation (`prepareDKGAsync`) and several sequential network round-trips. Expect 10–30 seconds end-to-end.
