@@ -14,9 +14,8 @@ import {
 } from "@radix-ui/themes";
 import { PenLineIcon, RefreshCw } from "lucide-react";
 import { useCurrentAccount, useCurrentClient } from "@mysten/dapp-kit-react";
+import { getLocalNetworkConfig } from "./lib/config";
 
-const UNVERIFIED_PRESIGN_CAP_TYPE =
-  "0x1007eac1b28c288b87995de09fb33846575c7245e1c5a6edf7e15d0ebbb46fd7::coordinator_inner::UnverifiedPresignCap";
 
 interface UnverifiedCap {
   objectId: string;
@@ -24,6 +23,10 @@ interface UnverifiedCap {
 }
 
 export function UnverifiedCapList() {
+  const UNVERIFIED_CAP_PACKAGE = getLocalNetworkConfig().packages.ikaDwallet2pcMpcPackage;
+  console.log("Unverified Cap Package:", UNVERIFIED_CAP_PACKAGE);
+  const UNVERIFIED_PRESIGN_CAP_TYPE =
+    `${UNVERIFIED_CAP_PACKAGE}::coordinator_inner::UnverifiedPresignCap`;
   const account = useCurrentAccount();
   const suiClient = useCurrentClient();
   const [caps, setCaps] = useState<UnverifiedCap[]>([]);

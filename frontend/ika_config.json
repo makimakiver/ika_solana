@@ -1,12 +1,12 @@
 {
   "packages": {
-    "ika_package_id": "0xf670e67c9c3e4defc07eba2c27bf7445ca2eb0af1b05480b621e8467b071e880",
-    "ika_common_package_id": "0xacc9742735f6f2a1aedae3ed8d1ef1c13dce40c2e24fefe044af4d0f079f5639",
-    "ika_dwallet_2pc_mpc_package_id": "0x1007eac1b28c288b87995de09fb33846575c7245e1c5a6edf7e15d0ebbb46fd7",
-    "ika_system_package_id": "0xd7ecf38e91863b0e7b6fc9cac4f39d475835908b6e35a56b417263d4f158faea"
+    "ika_package_id": "0x22408712e48413ee7af640aa763b193b0bfc51fff45bbff961f0f83eed74150e",
+    "ika_common_package_id": "0x1b8615c4502844bbd9e5b0f40d8f1229e5c748321651d47f2a28cd143563023c",
+    "ika_dwallet_2pc_mpc_package_id": "0x0e0d0abb7d0e1fcb7f417538b905257e7ffcfcf166a10f771b203d1bb7e57965",
+    "ika_system_package_id": "0xe254d71cb7b56c263031bed643e64cf3c20518a3dd70e46227690c74d3e5895b"
   },
   "objects": {
-    "ika_system_object_id": "0xeec9f3ac19dad7e3ab15323775aaa7d09111980d4cddd75a3a6e1cd91a9a04b0",
-    "ika_dwallet_coordinator_object_id": "0x553e4dbd7446933410610a7087f9508a20493a7b830807a0771202b108cd720b"
+    "ika_system_object_id": "0x02a876ea5b743e4e0675e7ded9de0fd5b31a15719a014894885f597eb976b0a1",
+    "ika_dwallet_coordinator_object_id": "0xd2d534308cb1316f560e935920bfcbb37e7fa9395868bf84f56d6492eb3e9fcb"
   }
 }

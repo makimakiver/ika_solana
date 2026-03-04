@@ -17,7 +17,7 @@ import {
 import { ArrowDownToLineIcon, CheckCircleIcon, CopyIcon, TriangleAlertIcon } from "lucide-react";
 import { useCurrentAccount, useCurrentClient } from "@mysten/dapp-kit-react";
 import { IkaClient, Curve, publicKeyFromDWalletOutput } from "@ika.xyz/sdk";
-import { getLocalNetworkConfig } from "./lib/dWallet_utils";
+import { getLocalNetworkConfig } from "./lib/config";
 import ikaConfigJson from "../ika_config.json";
 import bs58 from "bs58";
 
@@ -246,6 +246,13 @@ export function DepositSolana() {
               step="0.01"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              color={
+                solanaBalance !== null &&
+                amount !== "" &&
+                parseFloat(amount) * 1e9 > solanaBalance
+                  ? "red"
+                  : undefined
+              }
             />
           </Flex>
           {error && (

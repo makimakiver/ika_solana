@@ -1,27 +1,24 @@
 import {
-  Transaction,
-  TransactionObjectArgument,
-} from "@mysten/sui/transactions";
-import {
   IkaClient,
   IkaTransaction,
   UserShareEncryptionKeys,
   createRandomSessionIdentifier,
   Curve,
   prepareDKGAsync,
-  type IkaConfig,
 } from "@ika.xyz/sdk";
-import { retryWithBackoff } from "./utils";
-import { ClientWithCoreApi } from "@mysten/dapp-kit-react";
-import ikaConfigJson from "../../ika_config.json";
+import {
+  Transaction,
+  type TransactionObjectArgument,
+} from "@mysten/sui/transactions";
+import { type ClientWithCoreApi } from "@mysten/dapp-kit-react";
 import { getFaucetHost, requestSuiFromFaucetV2 } from "@mysten/sui/faucet";
+import { retryWithBackoff } from "./utils";
+import { getLocalNetworkConfig } from "./config";
+import { createEmptyTestIkaToken, destroyEmptyTestIkaToken } from "./localnet";
+import { deriveRootSeedKeyFromPassword } from "./crypto";
 
-export function deriveRootSeedKeyFromPassword(password: string): Uint8Array {
-  const encoded = new TextEncoder().encode(password);
-  const seed = new Uint8Array(32);
-  seed.set(encoded.slice(0, 32));
-  return seed;
-}
+export { getLocalNetworkConfig } from "./config";
+export { deriveRootSeedKeyFromPassword } from "./crypto";
 
 export interface CreateDwalletOnSolanaParams {
   senderAddress: string;
@@ -47,69 +44,6 @@ export interface DepositResult {
   futureSignCapId?: string;
 }
 
-// Helper function to convert object with numeric keys to Uint8Array
-function objectToUint8Array(obj: any): Uint8Array {
-  if (obj instanceof Uint8Array) return obj;
-  if (Array.isArray(obj)) return new Uint8Array(obj);
-  const keys = Object.keys(obj)
-    .map((k) => parseInt(k))
-    .sort((a, b) => a - b);
-  return new Uint8Array(keys.map((k) => obj[k]));
-}
-
-export function getLocalNetworkConfig(): IkaConfig {
-  return {
-    packages: {
-      ikaPackage: ikaConfigJson.packages.ika_package_id,
-      ikaCommonPackage: ikaConfigJson.packages.ika_common_package_id,
-      ikaSystemOriginalPackage: ikaConfigJson.packages.ika_system_package_id,
-      ikaSystemPackage: ikaConfigJson.packages.ika_system_package_id,
-      ikaDwallet2pcMpcOriginalPackage:
-        ikaConfigJson.packages.ika_dwallet_2pc_mpc_package_id,
-      ikaDwallet2pcMpcPackage:
-        ikaConfigJson.packages.ika_dwallet_2pc_mpc_package_id,
-    },
-    objects: {
-      ikaSystemObject: {
-        objectID: ikaConfigJson.objects.ika_system_object_id,
-        initialSharedVersion: 0,
-      },
-      ikaDWalletCoordinator: {
-        objectID: ikaConfigJson.objects.ika_dwallet_coordinator_object_id,
-        initialSharedVersion: 0,
-      },
-    },
-  };
-}
-
-export function destroyEmptyTestIkaToken(
-  tx: Transaction,
-  ikaConfig: IkaConfig,
-  ikaToken: TransactionObjectArgument,
-) {
-  return tx.moveCall({
-    target: `0x2::coin::destroy_zero`,
-    arguments: [ikaToken],
-    typeArguments: [`${ikaConfig.packages.ikaPackage}::ika::IKA`],
-  });
-}
-
-export function createEmptyTestIkaToken(tx: Transaction, ikaConfig: IkaConfig) {
-  return tx.moveCall({
-    target: `0x2::coin::zero`,
-    arguments: [],
-    typeArguments: [`${ikaConfig.packages.ikaPackage}::ika::IKA`],
-  });
-}
-
-/**
- *
- * @param sender_addr
- * @param suiClient
- * @param signAndExecuteTransaction
- * @param
- * @returns
- */
 export async function createdWallet({
   senderAddress,
   suiClient,
@@ -127,7 +61,7 @@ export async function createdWallet({
   const rootSeedKey = deriveRootSeedKeyFromPassword(password);
   const userShareKeys = await UserShareEncryptionKeys.fromRootSeedKey(
     rootSeedKey,
-    Curve.ED25519, //Solana supports ED25519 Curve so will choose ED25519 by default
+    Curve.ED25519,
   );
 
   status("Initializing IKA client...");
@@ -147,46 +81,42 @@ export async function createdWallet({
   });
 
   status("Fetching user coins...");
-
   await requestSuiFromFaucetV2({
     host: getFaucetHost("localnet"),
     recipient: senderAddress,
   });
+
   const sessionId = createRandomSessionIdentifier();
 
   status("Registering encryption key...");
-  await ikaTx.registerEncryptionKey({
-    curve: Curve.ED25519,
-  });
+  await ikaTx.registerEncryptionKey({ curve: Curve.ED25519 });
 
   status("Fetching network encryption key...");
   const dWalletEncryptionKey = await retryWithBackoff(
-    async () => {
-      return await ikaClient.getLatestNetworkEncryptionKey();
-    },
+    async () => await ikaClient.getLatestNetworkEncryptionKey(),
     5,
     status,
   );
 
   status("Preparing DKG...");
   const dkgRequestInput = await retryWithBackoff(
-    async () => {
-      return await prepareDKGAsync(
+    async () =>
+      await prepareDKGAsync(
         ikaClient,
         Curve.ED25519,
         userShareKeys,
         sessionId,
         senderAddress,
-      );
-    },
+      ),
     5,
     status,
   );
+
   const emptyIKACoin = createEmptyTestIkaToken(tx, getLocalNetworkConfig());
-  console.log(dkgRequestInput.userPublicOutput);
+
   status("Requesting dWallet DKG...");
-  const [dwalletCap, _sign_ID] = await ikaTx.requestDWalletDKG({
-    dkgRequestInput: dkgRequestInput,
+  const [dwalletCap] = await ikaTx.requestDWalletDKG({
+    dkgRequestInput,
     sessionIdentifier: ikaTx.registerSessionIdentifier(sessionId),
     dwalletNetworkEncryptionKeyId: dWalletEncryptionKey.id,
     curve: Curve.ED25519,
@@ -209,8 +139,7 @@ export async function createdWallet({
       transaction: true,
     },
   });
-  console.log("HELLO:", waitForTransactionResult);
-  // Find the DWalletCap created specifically in this transaction
+
   const createdCapEntry =
     waitForTransactionResult.Transaction?.effects?.changedObjects?.find(
       (obj: any) =>
@@ -219,15 +148,6 @@ export async function createdWallet({
           obj.objectId
         ]?.includes("DWalletCap"),
     );
-  console.log(
-    "changedObjects:",
-    waitForTransactionResult.Transaction?.effects?.changedObjects,
-  );
-  console.log(
-    "objectTypes:",
-    waitForTransactionResult.Transaction?.objectTypes,
-  );
-  console.log("createdCapEntry:", createdCapEntry);
   if (!createdCapEntry)
     throw new Error("DWalletCap not found in transaction effects");
 
@@ -253,7 +173,7 @@ export async function createdWallet({
     transaction: activationTx,
     userShareEncryptionKeys: userShareKeys,
   });
-  console.log(dWalletReady);
+
   const tableId = dWalletReady.encrypted_user_secret_key_shares?.id;
   if (!tableId)
     throw new Error("encrypted_user_secret_key_shares table not found");
@@ -268,7 +188,7 @@ export async function createdWallet({
   await activationIkaTx.acceptEncryptedUserShare({
     dWallet: dWalletReady,
     encryptedUserSecretKeyShareId,
-    userPublicOutput: objectToUint8Array(dkgRequestInput.userPublicOutput),
+    userPublicOutput: dkgRequestInput.userPublicOutput,
   });
 
   status("Submitting activation transaction...");

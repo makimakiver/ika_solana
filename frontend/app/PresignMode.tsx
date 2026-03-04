@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   Badge,
-  Box,
   Button,
   Callout,
   Card,
@@ -16,7 +15,6 @@ import {
   TextField,
 } from "@radix-ui/themes";
 import {
-  CheckCircleIcon,
   PenLineIcon,
   RefreshCw,
   TriangleAlertIcon,
@@ -30,30 +28,18 @@ import {
 import { IkaClient, Curve, publicKeyFromDWalletOutput } from "@ika.xyz/sdk";
 import { Connection } from "@solana/web3.js";
 import bs58 from "bs58";
-import {
-  getLocalNetworkConfig,
-  deriveRootSeedKeyFromPassword,
-  type DepositResult,
-} from "./lib/dWallet_utils";
+import { getLocalNetworkConfig } from "./lib/config";
+import { deriveRootSeedKeyFromPassword } from "./lib/crypto";
 import { createPresign } from "./lib/presign_utils";
-import { withdrawWithPresignCap } from "./lib/ika_solana_sign";
+import { withdrawWithPresignCap } from "./lib/solana/sign";
 
+const UNVERIFIED_CAP_PACKAGE = getLocalNetworkConfig().packages.ikaDwallet2pcMpcPackage;
 const UNVERIFIED_PRESIGN_CAP_TYPE =
-  "0x1007eac1b28c288b87995de09fb33846575c7245e1c5a6edf7e15d0ebbb46fd7::coordinator_inner::UnverifiedPresignCap";
+  `${UNVERIFIED_CAP_PACKAGE}::coordinator_inner::UnverifiedPresignCap`;
 
 interface UnverifiedCap {
   objectId: string;
   json: Record<string, any> | null;
-}
-
-async function signSolanaWithPresignCap(_params: {
-  presignCapId: string;
-  dwalletId: string;
-  destinationAddress: string;
-  lamports: number;
-}): Promise<void> {
-  // TODO: implement — build unsigned Solana SOL-transfer, hash the message,
-  // call IKA to complete the signature using the presign cap, then broadcast.
 }
 
 interface Props {
@@ -70,7 +56,6 @@ export function PresignMode({ selectedDWallet }: Props) {
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<DepositResult | null>(null);
 
   // ── Unverified caps list ────────────────────────────────────────────────────
   const [caps, setCaps] = useState<UnverifiedCap[]>([]);
@@ -82,8 +67,8 @@ export function PresignMode({ selectedDWallet }: Props) {
   const [solAmount, setSolAmount] = useState("");
   const [signPassword, setSignPassword] = useState("");
   const [signPending, setSignPending] = useState(false);
+  const [signStatus, setSignStatus] = useState<string | null>(null);
   const [signError, setSignError] = useState<string | null>(null);
-  const [signDone, setSignDone] = useState(false);
   const [dialogSolanaAddr, setDialogSolanaAddr] = useState<string | null>(null);
   const [dialogBalance, setDialogBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
@@ -165,7 +150,6 @@ export function PresignMode({ selectedDWallet }: Props) {
     setDestAddress("");
     setSolAmount("");
     setSignError(null);
-    setSignDone(false);
     setDialogSolanaAddr(null);
     setDialogBalance(null);
     fetchCapBalance(cap);
@@ -174,8 +158,8 @@ export function PresignMode({ selectedDWallet }: Props) {
   function closeDialog() {
     if (signPending) return;
     setSigningCap(null);
-    setSignDone(false);
     setSignError(null);
+    setSignStatus(null);
     setSignPassword("");
   }
 
@@ -204,13 +188,15 @@ export function PresignMode({ selectedDWallet }: Props) {
         presignId,
         destinationAddress: destAddress,
         lamports: Math.round(parseFloat(solAmount) * 1e9),
+        onStatus: setSignStatus,
       });
-      setSignDone(true);
-      await fetchCaps(); // refresh list after signing
+      await fetchCaps();
+      closeDialog();
     } catch (err) {
       setSignError(err instanceof Error ? err.message : "Signing failed");
     } finally {
       setSignPending(false);
+      setSignStatus(null);
     }
   }
 
@@ -223,7 +209,7 @@ export function PresignMode({ selectedDWallet }: Props) {
     setStatus(null);
     try {
       const rootSeedKey = deriveRootSeedKeyFromPassword(password);
-      const presignResult = await createPresign({
+      await createPresign({
         senderAddress: account.address,
         suiClient,
         signAndExecuteTransaction: (args) =>
@@ -232,71 +218,14 @@ export function PresignMode({ selectedDWallet }: Props) {
         rootSeedKey,
         onStatus: setStatus,
       });
-      setResult({
-        transactionDigest: presignResult.transactionDigest,
-        presignCapId: presignResult.presignCapId,
-      });
-      await fetchCaps(); // refresh caps after creating
+      setPassword("");
+      await fetchCaps();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Presign failed");
     } finally {
       setPending(false);
       setStatus(null);
     }
-  }
-
-  // ── Result screen ───────────────────────────────────────────────────────────
-  if (result) {
-    return (
-      <Flex direction="column" gap="3">
-        <Callout.Root color="green">
-          <Callout.Icon>
-            <CheckCircleIcon size={16} />
-          </Callout.Icon>
-          <Callout.Text>Presign submitted successfully</Callout.Text>
-        </Callout.Root>
-        <Flex
-          direction="column"
-          gap="2"
-          p="3"
-          style={{
-            background: "var(--gray-a3)",
-            borderRadius: "var(--radius-3)",
-          }}
-        >
-          <Box>
-            <Text size="1" color="gray">
-              Transaction
-            </Text>
-            <Code size="1" style={{ wordBreak: "break-all", display: "block" }}>
-              {result.transactionDigest}
-            </Code>
-          </Box>
-          {result.presignCapId && (
-            <Box>
-              <Text size="1" color="gray">
-                Presign Cap ID
-              </Text>
-              <Code
-                size="1"
-                style={{ wordBreak: "break-all", display: "block" }}
-              >
-                {result.presignCapId}
-              </Code>
-            </Box>
-          )}
-        </Flex>
-        <Button
-          variant="outline"
-          onClick={() => {
-            setResult(null);
-            setPassword("");
-          }}
-        >
-          Create Another
-        </Button>
-      </Flex>
-    );
   }
 
   return (
@@ -320,177 +249,144 @@ export function PresignMode({ selectedDWallet }: Props) {
             transaction.
           </Dialog.Description>
 
-          {signDone ? (
-            <Flex direction="column" gap="3">
-              <Callout.Root color="green">
-                <Callout.Icon>
-                  <CheckCircleIcon size={16} />
-                </Callout.Icon>
-                <Callout.Text>Transaction signed successfully.</Callout.Text>
-              </Callout.Root>
-              <Box>
-                <Text size="1" color="gray">
+          <Flex direction="column" gap="3">
+            {/* Cap info panel */}
+            <div
+              style={{
+                padding: "12px",
+                background: "var(--amber-a3)",
+                borderRadius: "var(--radius-3)",
+                border: "1px solid var(--amber-a6)",
+              }}
+            >
+              <Flex align="center" gap="2" mb="1">
+                <Badge color="amber" variant="soft">
+                  Unverified
+                </Badge>
+                <Text size="1" weight="medium">
                   Presign Cap
                 </Text>
-                <Code
-                  size="1"
-                  style={{ wordBreak: "break-all", display: "block" }}
-                >
-                  {signingCap?.objectId}
-                </Code>
-              </Box>
+              </Flex>
+              <Code
+                size="1"
+                style={{ wordBreak: "break-all", display: "block" }}
+              >
+                {signingCap?.objectId}
+              </Code>
+            </div>
+
+            <Separator size="4" />
+
+            {/* Transaction fields */}
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="medium">
+                Destination Solana Address
+              </Text>
+              <TextField.Root
+                placeholder="Enter Solana address"
+                value={destAddress}
+                onChange={(e) => setDestAddress(e.target.value)}
+              />
+            </Flex>
+            <Flex direction="column" gap="1">
+              <Flex align="center" justify="between">
+                <Text as="label" size="2" weight="medium">
+                  Amount (SOL)
+                </Text>
+                {loadingBalance ? (
+                  <Flex align="center" gap="1">
+                    <Spinner size="1" />
+                    <Text size="1" color="gray">
+                      Loading balance…
+                    </Text>
+                  </Flex>
+                ) : dialogBalance !== null ? (
+                  <Text size="1" color="gray">
+                    Balance:{" "}
+                    <strong>{(dialogBalance / 1e9).toFixed(4)} SOL</strong>
+                  </Text>
+                ) : null}
+              </Flex>
+              <TextField.Root
+                type="number"
+                placeholder="0.00"
+                min="0"
+                step="0.01"
+                value={solAmount}
+                onChange={(e) => setSolAmount(e.target.value)}
+                color={
+                  dialogBalance !== null &&
+                  solAmount !== "" &&
+                  parseFloat(solAmount) * 1e9 > dialogBalance
+                    ? "red"
+                    : undefined
+                }
+              />
+              {dialogSolanaAddr && (
+                <Text size="1" color="gray">
+                  From:{" "}
+                  <Code size="1">
+                    {dialogSolanaAddr.slice(0, 8)}…
+                    {dialogSolanaAddr.slice(-6)}
+                  </Code>
+                </Text>
+              )}
+            </Flex>
+
+            <Flex direction="column" gap="1">
+              <Text as="label" size="2" weight="medium">
+                Password
+              </Text>
+              <TextField.Root
+                type="password"
+                placeholder="Password used to create your dWallet"
+                value={signPassword}
+                onChange={(e) => setSignPassword(e.target.value)}
+              />
+            </Flex>
+
+            {signStatus && (
+              <Flex align="center" gap="2">
+                <Spinner size="1" />
+                <Text size="2" color="gray">{signStatus}</Text>
+              </Flex>
+            )}
+
+            {signError && (
+              <Callout.Root color="red">
+                <Callout.Icon>
+                  <TriangleAlertIcon size={16} />
+                </Callout.Icon>
+                <Callout.Text>{signError}</Callout.Text>
+              </Callout.Root>
+            )}
+
+            <Flex gap="2" justify="end">
               <Dialog.Close>
-                <Button variant="outline" onClick={closeDialog}>
-                  Close
+                <Button
+                  variant="outline"
+                  color="gray"
+                  disabled={signPending}
+                  onClick={closeDialog}
+                >
+                  <XIcon size={14} /> Cancel
                 </Button>
               </Dialog.Close>
-            </Flex>
-          ) : (
-            <Flex direction="column" gap="3">
-              {/* Cap info panel */}
-              <Box
-                p="3"
-                style={{
-                  background: "var(--amber-a3)",
-                  borderRadius: "var(--radius-3)",
-                  border: "1px solid var(--amber-a6)",
-                }}
+              <Button
+                disabled={signPending || !destAddress || !solAmount || !signPassword}
+                onClick={handleSign}
               >
-                <Flex align="center" gap="2" mb="1">
-                  <Badge color="amber" variant="soft">
-                    Unverified
-                  </Badge>
-                  <Text size="1" weight="medium">
-                    Presign Cap
-                  </Text>
-                </Flex>
-                <Code
-                  size="1"
-                  style={{ wordBreak: "break-all", display: "block" }}
-                >
-                  {signingCap?.objectId}
-                </Code>
-                {signingCap?.json &&
-                  Object.keys(signingCap.json).length > 0 && (
-                    <Flex direction="column" gap="1" mt="2">
-                      {Object.entries(signingCap.json).map(([key, value]) => (
-                        <Box key={key}>
-                          <Text size="1" color="gray">
-                            {key}
-                          </Text>
-                          <Code
-                            size="1"
-                            style={{ wordBreak: "break-all", display: "block" }}
-                          >
-                            {typeof value === "object"
-                              ? JSON.stringify(value)
-                              : String(value)}
-                          </Code>
-                        </Box>
-                      ))}
-                    </Flex>
-                  )}
-              </Box>
-
-              <Separator size="4" />
-
-              {/* Transaction fields */}
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="medium">
-                  Destination Solana Address
-                </Text>
-                <TextField.Root
-                  placeholder="Enter Solana address"
-                  value={destAddress}
-                  onChange={(e) => setDestAddress(e.target.value)}
-                />
-              </Flex>
-              <Flex direction="column" gap="1">
-                <Flex align="center" justify="between">
-                  <Text as="label" size="2" weight="medium">
-                    Amount (SOL)
-                  </Text>
-                  {loadingBalance ? (
-                    <Flex align="center" gap="1">
-                      <Spinner size="1" />
-                      <Text size="1" color="gray">
-                        Loading balance…
-                      </Text>
-                    </Flex>
-                  ) : dialogBalance !== null ? (
-                    <Text size="1" color="gray">
-                      Balance:{" "}
-                      <strong>{(dialogBalance / 1e9).toFixed(4)} SOL</strong>
-                    </Text>
-                  ) : null}
-                </Flex>
-                <TextField.Root
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  value={solAmount}
-                  onChange={(e) => setSolAmount(e.target.value)}
-                />
-                {dialogSolanaAddr && (
-                  <Text size="1" color="gray">
-                    From:{" "}
-                    <Code size="1">
-                      {dialogSolanaAddr.slice(0, 8)}…
-                      {dialogSolanaAddr.slice(-6)}
-                    </Code>
-                  </Text>
+                {signPending ? (
+                  <>
+                    <Spinner />
+                    Signing...
+                  </>
+                ) : (
+                  "Sign Transaction"
                 )}
-              </Flex>
-
-              <Flex direction="column" gap="1">
-                <Text as="label" size="2" weight="medium">
-                  Password
-                </Text>
-                <TextField.Root
-                  type="password"
-                  placeholder="Password used to create your dWallet"
-                  value={signPassword}
-                  onChange={(e) => setSignPassword(e.target.value)}
-                />
-              </Flex>
-
-              {signError && (
-                <Callout.Root color="red">
-                  <Callout.Icon>
-                    <TriangleAlertIcon size={16} />
-                  </Callout.Icon>
-                  <Callout.Text>{signError}</Callout.Text>
-                </Callout.Root>
-              )}
-
-              <Flex gap="2" justify="end">
-                <Dialog.Close>
-                  <Button
-                    variant="outline"
-                    color="gray"
-                    disabled={signPending}
-                    onClick={closeDialog}
-                  >
-                    <XIcon size={14} /> Cancel
-                  </Button>
-                </Dialog.Close>
-                <Button
-                  disabled={signPending || !destAddress || !solAmount || !signPassword}
-                  onClick={handleSign}
-                >
-                  {signPending ? (
-                    <>
-                      <Spinner />
-                      Signing...
-                    </>
-                  ) : (
-                    "Sign Transaction"
-                  )}
-                </Button>
-              </Flex>
+              </Button>
             </Flex>
-          )}
+          </Flex>
         </Dialog.Content>
       </Dialog.Root>
 

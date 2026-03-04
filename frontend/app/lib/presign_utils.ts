@@ -1,5 +1,4 @@
 import {
-  getNetworkConfig,
   IkaClient,
   IkaTransaction,
   UserShareEncryptionKeys,
@@ -7,35 +6,15 @@ import {
   SignatureAlgorithm,
   SessionsManagerModule,
   CoordinatorInnerModule,
-  type IkaConfig,
 } from "@ika.xyz/sdk";
 import {
   Transaction,
   type TransactionObjectArgument,
 } from "@mysten/sui/transactions";
-import { ClientWithCoreApi } from "@mysten/sui/client";
+import { type ClientWithCoreApi } from "@mysten/sui/client";
 import { retryWithBackoff } from "./utils";
-import { getLocalNetworkConfig } from "./dWallet_utils";
-
-function createEmptyTestIkaToken(tx: Transaction, ikaConfig: IkaConfig) {
-  return tx.moveCall({
-    target: `0x2::coin::zero`,
-    arguments: [],
-    typeArguments: [`${ikaConfig.packages.ikaPackage}::ika::IKA`],
-  });
-}
-
-function destroyEmptyTestIkaToken(
-  tx: Transaction,
-  ikaConfig: IkaConfig,
-  ikaToken: TransactionObjectArgument,
-) {
-  return tx.moveCall({
-    target: `0x2::coin::destroy_zero`,
-    arguments: [ikaToken],
-    typeArguments: [`${ikaConfig.packages.ikaPackage}::ika::IKA`],
-  });
-}
+import { getLocalNetworkConfig } from "./config";
+import { createEmptyTestIkaToken, destroyEmptyTestIkaToken } from "./localnet";
 
 export interface CreatePresignParams {
   senderAddress: string;
@@ -66,13 +45,10 @@ export async function createPresign({
   const status = onStatus ?? (() => {});
 
   status("Initializing IKA client...");
-  const ikaClient = new IkaClient({
-    suiClient: suiClient,
-    config: getLocalNetworkConfig(),
-  });
+  const ikaConfig = getLocalNetworkConfig();
+  const ikaClient = new IkaClient({ suiClient, config: ikaConfig });
   await ikaClient.initialize();
 
-  const ikaConfig = getLocalNetworkConfig();
   const tx = new Transaction();
   const userShareKeys = await UserShareEncryptionKeys.fromRootSeedKey(
     rootSeedKey,
@@ -132,7 +108,6 @@ export async function createPresign({
   const parsedPresignEvent = SessionsManagerModule.DWalletSessionEvent(
     CoordinatorInnerModule.PresignRequestEvent,
   ).parse(presignEvent.bcs);
-  console.log(parsedPresignEvent);
   const presignId = parsedPresignEvent.event_data.presign_id;
 
   status("Waiting for presign to complete on the network...");
