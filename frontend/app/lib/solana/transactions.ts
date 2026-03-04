@@ -6,7 +6,7 @@ import {
   // TransactionInstruction,
 } from "@solana/web3.js";
 
-const MEMO_PROGRAM_ID = "";
+// const MEMO_PROGRAM_ID = "";
 
 // export async function buildUnsignedMemoTx(
 //   connection: Connection,
