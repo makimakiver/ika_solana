@@ -101,11 +101,17 @@ ika_sol_example/
         ├── DappKitClientProvider.tsx # Sui dApp Kit context provider
         ├── dapp-kit.ts               # dApp Kit configuration
         └── lib/
-            ├── dWallet_utils.ts      # IKA SDK — DKG, activation, network config, token helpers
-            ├── ika_solana_sign.ts    # Solana signing — build tx, IKA sign, broadcast, explorer URL
-            ├── presign_utils.ts      # createPresign — requestGlobalPresign + wait for Completed
+            ├── config.ts             # IkaConfig builder from ika_config.json
+            ├── crypto.ts             # Password → seed key derivation, Uint8Array helpers
+            ├── dWallet_utils.ts      # DKG + activation flow — createdWallet(), CreateDwalletResult, DepositResult
             ├── env.ts                # Env var accessors (SUI_RPC_URL, SOLANA_RPC_URL)
-            └── utils.ts              # retryWithBackoff utility
+            ├── localnet.ts           # Zero-value IKA coin helpers for localnet testing
+            ├── presign_utils.ts      # createPresign — requestGlobalPresign + wait for Completed
+            ├── utils.ts              # retryWithBackoff utility
+            └── solana/
+                ├── broadcast.ts      # Attach Ed25519 sig, broadcast to devnet, confirm + toast
+                ├── sign.ts           # ikaSignBytes, fetchIkaSignature, withdrawWithPresignCap
+                └── transactions.ts   # buildUnsignedMemoTx, buildUnsignedSOLTransfer
 ```
 
 ---
