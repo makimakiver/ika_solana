@@ -52,14 +52,15 @@ export function DepositSolana() {
 
   useEffect(() => {
     if (!account) return;
-    setLoadingDWallets(true);
-    suiClient.core
-      .listOwnedObjects({
-        owner: account.address,
-        type: `${ikaConfigJson.packages.ika_dwallet_2pc_mpc_package_id}::coordinator_inner::DWalletCap`,
-        include: { content: true, json: true },
-      })
-      .then(async (owned) => {
+
+    async function loadDWallets() {
+      setLoadingDWallets(true);
+      try {
+        const owned = await suiClient.core.listOwnedObjects({
+          owner: account!.address,
+          type: `${ikaConfigJson.packages.ika_dwallet_2pc_mpc_package_id}::coordinator_inner::DWalletCap`,
+          include: { content: true, json: true },
+        });
         const ikaClient = new IkaClient({ suiClient, config: getLocalNetworkConfig() });
         await ikaClient.initialize();
         const results: DWalletOption[] = [];
@@ -81,8 +82,12 @@ export function DepositSolana() {
         }
         setDwallets(results);
         if (results.length > 0) setSelectedDWallet(results[0]);
-      })
-      .finally(() => setLoadingDWallets(false));
+      } finally {
+        setLoadingDWallets(false);
+      }
+    }
+
+    loadDWallets();
   }, [account?.address]);
 
   // Derive Solana public key and fetch balance when selected dWallet changes

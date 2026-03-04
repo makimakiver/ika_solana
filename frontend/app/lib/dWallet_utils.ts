@@ -40,6 +40,13 @@ export interface CreateDwalletResult {
   transactionDigest: string;
 }
 
+export interface DepositResult {
+  transactionDigest: string;
+  signId?: string;
+  presignCapId?: string;
+  futureSignCapId?: string;
+}
+
 // Helper function to convert object with numeric keys to Uint8Array
 function objectToUint8Array(obj: any): Uint8Array {
   if (obj instanceof Uint8Array) return obj;
@@ -75,7 +82,7 @@ export function getLocalNetworkConfig(): IkaConfig {
   };
 }
 
-function destroyEmptyTestIkaToken(
+export function destroyEmptyTestIkaToken(
   tx: Transaction,
   ikaConfig: IkaConfig,
   ikaToken: TransactionObjectArgument,
@@ -87,7 +94,7 @@ function destroyEmptyTestIkaToken(
   });
 }
 
-function createEmptyTestIkaToken(tx: Transaction, ikaConfig: IkaConfig) {
+export function createEmptyTestIkaToken(tx: Transaction, ikaConfig: IkaConfig) {
   return tx.moveCall({
     target: `0x2::coin::zero`,
     arguments: [],
