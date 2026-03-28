@@ -14,7 +14,7 @@ import {
 } from "@radix-ui/themes";
 import { RefreshCw, Wallet } from "lucide-react";
 import { useCurrentAccount, useCurrentClient } from "@mysten/dapp-kit-react";
-import ikaConfigJson from "../ika_config.json";
+import ikaConfigJson from "../../ika_config.json";
 import { IkaClient } from "@ika.xyz/sdk";
 import { getLocalNetworkConfig } from "./lib/config";
 

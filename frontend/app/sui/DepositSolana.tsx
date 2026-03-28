@@ -18,7 +18,7 @@ import { ArrowDownToLineIcon, CheckCircleIcon, CopyIcon, TriangleAlertIcon } fro
 import { useCurrentAccount, useCurrentClient } from "@mysten/dapp-kit-react";
 import { IkaClient, Curve, publicKeyFromDWalletOutput } from "@ika.xyz/sdk";
 import { getLocalNetworkConfig } from "./lib/config";
-import ikaConfigJson from "../ika_config.json";
+import ikaConfigJson from "../../ika_config.json";
 import bs58 from "bs58";
 
 interface DWalletOption {

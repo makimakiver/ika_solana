@@ -1,0 +1,11 @@
+[package]
+name = "solana_indexer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dotenv = "0.15"
+futures-util = "0.3"
+solana-client = "2"
+solana-sdk = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

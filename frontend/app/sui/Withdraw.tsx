@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { useCurrentAccount, useCurrentClient } from "@mysten/dapp-kit-react";
 import { IkaClient } from "@ika.xyz/sdk";
-import ikaConfigJson from "../ika_config.json";
+import ikaConfigJson from "../../ika_config.json";
 import { getLocalNetworkConfig } from "./lib/dWallet_utils";
 import { PresignMode } from "./PresignMode";
 import { DirectSignMode } from "./DirectSignMode";
