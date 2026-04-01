@@ -3,7 +3,7 @@
 **/*.rs.bk
 
 # ── Node / JS / TS ────────────────────────────────────────────────────────────
-node_modules/
+**/node_modules/
 dist/
 .next/
 out/
@@ -15,7 +15,7 @@ build/
 **/.env
 **/.env.*
 !**/.env.example
-backend/.env
+
 # ── OS ────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
