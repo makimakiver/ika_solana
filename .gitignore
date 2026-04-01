@@ -1,0 +1,6 @@
+# Rust build artifacts
+target/
+**/target/
+
+# Cargo lock files (optional - remove if you want to track them)
+# Cargo.lock
