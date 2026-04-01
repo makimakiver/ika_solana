@@ -34,7 +34,9 @@ type Step = "idle" | "signing" | "creating" | "done";
 
 interface DWalletResult {
   dWalletId: string;
-  solanaEscrowAddress: string;
+  dWalletCapId: string;
+  publicKey: string;
+  transactionDigest: string;
 }
 
 export function CreateDWallet() {
@@ -144,10 +146,10 @@ export function CreateDWallet() {
             onCopy={() => copy(dWallet.dWalletId, "dWalletId")}
           />
           <ResultRow
-            label="Solana escrow address"
-            value={dWallet.solanaEscrowAddress}
-            copied={copiedField === "escrow"}
-            onCopy={() => copy(dWallet.solanaEscrowAddress, "escrow")}
+            label="dWallet Cap ID"
+            value={dWallet.dWalletCapId}
+            copied={copiedField === "capId"}
+            onCopy={() => copy(dWallet.dWalletCapId, "capId")}
           />
 
           <Button

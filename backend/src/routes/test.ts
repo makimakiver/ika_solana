@@ -21,6 +21,7 @@ import {
   suiClient,
   testnetSuiClient,
   getBackendKeypair,
+  getGasSponsorKeypair,
 } from "../lib/sui-client.js";
 import { getLocalNetworkConfig } from "../lib/config.js";
 import {
@@ -165,12 +166,16 @@ router.post("/sign-sui", async (req: Request, res: Response) => {
 
     // ── Step 4: build the target transaction and get bytes to sign ────────────
     const dWalletSuiAddress = new Ed25519PublicKey(pubkeyBytes).toSuiAddress();
+    const gasSponsor = getGasSponsorKeypair();
+    const sponsorAddress = gasSponsor.getPublicKey().toSuiAddress();
+
     const targetTx = new Transaction();
     targetTx.moveCall({
       target: `${URCHIN_PACKAGE}::contract::test_call`,
       arguments: [],
     });
     targetTx.setSender(dWalletSuiAddress);
+    targetTx.setGasOwner(sponsorAddress);
     // TODO: replace with real Urchin Move call once ABI is known
     const txBytes = await targetTx.build({ client: testnetSuiClient });
 
@@ -274,13 +279,16 @@ router.post("/sign-sui", async (req: Request, res: Response) => {
       ...rawSignature,
       ...pubkeyBytes,
     ]);
-    const suiSigBase64 = Buffer.from(suiSignature).toString("base64");
+    const dWalletSigBase64 = Buffer.from(suiSignature).toString("base64");
+
+    // Gas sponsor also signs the transaction
+    const sponsorSig = await gasSponsor.signTransaction(txBytes);
 
     console.log("[test/sign-sui] suiSignature length:", suiSignature.length);
     console.log("[test/sign-sui] executing signed transaction...");
     const execResult = await testnetSuiClient.core.executeTransaction({
       transaction: txBytes,
-      signatures: [suiSigBase64],
+      signatures: [dWalletSigBase64, sponsorSig.signature],
     });
 
     const digest =

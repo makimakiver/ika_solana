@@ -3,6 +3,8 @@ import express from "express";
 import dwalletRouter from "./routes/dwallet.js";
 import depositRouter from "./routes/deposit.js";
 import testRouter from "./routes/test.js";
+import bridgeRouter from "./routes/bridge.js";
+import lifiRouter from "./routes/lifi.js";
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -25,6 +27,8 @@ app.get("/health", (_req, res) => {
 app.use("/api/dwallet", dwalletRouter);
 app.use("/api/deposit", depositRouter);
 app.use("/api/test", testRouter);
+app.use("/api/bridge", bridgeRouter);
+app.use("/api/lifi", lifiRouter);
 
 app.listen(PORT, () => {
   console.log(`Urchin backend running on http://localhost:${PORT}`);

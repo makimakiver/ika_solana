@@ -16,16 +16,18 @@ import {
   WalletIcon,
   ArrowDownToLineIcon,
   ArrowUpFromLineIcon,
-  PenLineIcon,
   FlaskConicalIcon,
 } from "lucide-react";
-import { SignMessage } from "./SignMessage";
 import { CreateDWallet } from "./CreateDWallet";
 import { DWalletList } from "./DWalletList";
 import { SolanaDeposit } from "./SolanaDeposit";
 import { SolanaTest } from "./SolanaTest";
+import { NearIntentsBridge } from "./NearIntentsBridge";
+import { NearIntentsWithdraw } from "./NearIntentsWithdraw";
+import { LiFiDeposit } from "./LiFiDeposit";
+import { LiFiWithdraw } from "./LiFiWithdraw";
 
-type Page = "create-dwallet" | "deposit" | "withdraw" | "sign" | "test";
+type Page = "create-dwallet" | "deposit" | "withdraw" | "test";
 
 export function SolanaHomeClient() {
   const { publicKey, disconnect, connecting } = useWallet();
@@ -99,12 +101,6 @@ export function SolanaHomeClient() {
                 Withdraw
               </Flex>
             </SegmentedControl.Item>
-            <SegmentedControl.Item value="sign">
-              <Flex align="center" gap="2">
-                <PenLineIcon size={14} />
-                Sign
-              </Flex>
-            </SegmentedControl.Item>
             <SegmentedControl.Item value="test">
               <Flex align="center" gap="2">
                 <FlaskConicalIcon size={14} />
@@ -129,15 +125,16 @@ export function SolanaHomeClient() {
               <DWalletList />
             </Flex>
           ) : activePage === "deposit" ? (
-            <SolanaDeposit />
+            <Flex direction="column" gap="4">
+              <SolanaDeposit />
+              <NearIntentsBridge />
+              <LiFiDeposit />
+            </Flex>
           ) : activePage === "withdraw" ? (
-            <Card size="3">
-              <Text size="2" color="gray">
-                Withdraw via li.fi or Near Intents coming soon.
-              </Text>
-            </Card>
-          ) : activePage === "sign" ? (
-            <SignMessage />
+            <Flex direction="column" gap="4">
+              <NearIntentsWithdraw />
+              <LiFiWithdraw />
+            </Flex>
           ) : (
             <SolanaTest />
           )}
